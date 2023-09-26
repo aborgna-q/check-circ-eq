@@ -1,0 +1,3 @@
+pytket-cutensornet
+cuquantum-python-cu12
+numpy
