@@ -42,10 +42,8 @@ def run(max_qubits, results):
     n_success = 0
     n_fail = 0
 
-    for filename in os.listdir(new_circs):
-        if filename.startswith("final_circ_"):
-            name = filename[11:]
-            new_circ_f = os.path.join(new_circs, filename)
+    for name in os.listdir(new_circs):
+            new_circ_f = os.path.join(new_circs, name)
             old_circ_f = os.path.join(old_circs, name)
 
             with open(new_circ_f, "r") as f:
