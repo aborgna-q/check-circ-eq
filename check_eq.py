@@ -1,6 +1,8 @@
 import os
 import json
 import time
+from glob import glob
+from pathlib import Path
 
 from pytket import Circuit
 from pytket.extensions.cutensornet import TensorNetwork
@@ -42,21 +44,23 @@ def run(max_qubits, results):
     n_success = 0
     n_fail = 0
 
-    for name in os.listdir(new_circs):
-            new_circ_f = os.path.join(new_circs, name)
-            old_circ_f = os.path.join(old_circs, name)
+    for name in os.listdir(old_circs):
+        name = Path(name)
+        old_circ_f = os.path.join(old_circs, name)
+        with open(old_circ_f, "r") as f:
+            old_circ = Circuit.from_dict(json.load(f))
 
+        for new_circ_f in glob(os.path.join(new_circs, name.stem + "*.json")):
             with open(new_circ_f, "r") as f:
                 new_circ = Circuit.from_dict(json.load(f))
-            with open(old_circ_f, "r") as f:
-                old_circ = Circuit.from_dict(json.load(f))
+
             if new_circ.n_qubits != old_circ.n_qubits:
                 print(
-                    f"{name} have different qubit count in bef/ and aft/ ({old_circ.n_qubits} vs {new_circ.n_qubits})"
+                    f"{old_circ_f} and {new_circ_f} have different qubit counts ({old_circ.n_qubits} vs {new_circ.n_qubits})"
                 )
                 exit(1)
             print(
-                f"Checking equivalence for {name} ({new_circ.n_qubits} qb, {old_circ.n_gates} -> {new_circ.n_gates} gates)"
+                f"Checking equivalence for {old_circ_f} and {new_circ_f} ({new_circ.n_qubits} qb, {old_circ.n_gates} -> {new_circ.n_gates} gates)"
             )
             if new_circ.n_qubits > max_qubits:
                 print("Skip")
