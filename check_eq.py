@@ -5,6 +5,7 @@ from glob import glob
 from pathlib import Path
 
 from pytket import Circuit
+from pytket.qasm import circuit_from_qasm
 from pytket.extensions.cutensornet import TensorNetwork
 import cuquantum as cq
 import numpy as np
@@ -45,20 +46,24 @@ def run(max_qubits, results):
     n_fail = 0
 
     for name in os.listdir(old_circs):
-        name = Path(name)
         old_circ_f = os.path.join(old_circs, name)
-        with open(old_circ_f, "r") as f:
-            old_circ = Circuit.from_dict(json.load(f))
+        name = Path(name).stem
 
-        for new_circ_f in glob(os.path.join(new_circs, name.stem + "*.json")):
-            with open(new_circ_f, "r") as f:
-                new_circ = Circuit.from_dict(json.load(f))
+        old_circ = load_circuit(old_circ_f)
+
+        json_new_circs = glob(os.path.join(new_circs, name + "*.json"))
+        qasm_new_circs = glob(os.path.join(new_circs, name + "*.qasm"))
+
+        for new_circ_f in json_new_circs + qasm_new_circs:
+            new_circ = load_circuit(new_circ_f)
 
             if new_circ.n_qubits != old_circ.n_qubits:
                 print(
                     f"{old_circ_f} and {new_circ_f} have different qubit counts ({old_circ.n_qubits} vs {new_circ.n_qubits})"
                 )
-                exit(1)
+                n_fail += 1
+                continue
+
             print(
                 f"Checking equivalence for {old_circ_f} and {new_circ_f} ({new_circ.n_qubits} qb, {old_circ.n_gates} -> {new_circ.n_gates} gates)"
             )
@@ -80,6 +85,19 @@ def run(max_qubits, results):
             results.append((name, is_eq, elapsed_time))
 
     print(f"Done. Success/Fail/Skipped ({n_success}/{n_fail}/{n_skipped}).")
+
+
+def load_circuit(file):
+    """Load a circuit from a tket1 json or qasm file."""
+    file = Path(file)
+    # Check the extension
+    if file.suffix == ".json":
+        with open(file, "r") as f:
+            circ = Circuit.from_dict(json.load(f))
+    elif file.suffix == ".qasm":
+        circ = circuit_from_qasm(file)
+
+    return circ
 
 
 if __name__ == "__main__":
